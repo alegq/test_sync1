@@ -1,0 +1,37 @@
+name: Sync to Second Repo
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v2
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY_SYNC }}" | tr -d '\r' > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      - name: Verify SSH authentication
+        continue-on-error: true
+        run: ssh -T git@github.com
+
+      - name: Add remote target
+        run: | 
+          git remote add target git@github.com:alegq/test_sync.git
+
+      - name: Sync to second repo
+        run: |
+          git push -f target main
+
+      - name: Cleanup SSH key
+        run: |
+          rm ~/.ssh/id_rsa
